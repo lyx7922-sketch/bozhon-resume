@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历解析工具</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft YaHei','PingFang SC',SimSun,sans-serif;background:#f2f3f6;min-height:100vh;font-size:13px}
+.header{background:linear-gradient(135deg,#0d2137,#1a4a8a);padding:14px 36px;display:flex;align-items:center;gap:14px}
+.header-logo{width:40px;height:40px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1a4a8a;font-size:18px}
+.header-title{color:#fff;font-size:18px;font-weight:700}
+.header-sub{color:rgba(255,255,255,.65);font-size:12px;margin-top:2px}
+.main{max-width:1100px;margin:0 auto;padding:28px 16px}
+.input-section{background:#fff;border-radius:14px;padding:24px;margin-bottom:20px}
+.section-title{font-size:15px;font-weight:700;color:#0d2137;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.section-hint{font-size:12px;color:#888;margin-bottom:10px}
+.upload-row{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.upload-btn{background:linear-gradient(135deg,#1a4a8a,#0d2137);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.upload-btn:hover{opacity:.85}
+.upload-filename{font-size:12px;color:#888}
+#resumeInput{width:100%;min-height:260px;padding:14px;border:2px solid #d5dcee;border-radius:10px;font-family:'Microsoft YaHei',SimSun,monospace;font-size:13px;line-height:1.8;resize:vertical;outline:none}
+#resumeInput:focus{border-color:#1a4a8a}
+.btn-row{display:flex;gap:10px;margin-top:12px}
+.parse-btn{background:#16a34a;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}
+.parse-btn:hover{background:#15803d}
+.clear-btn{background:#fff;color:#666;border:1px solid #ccc;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer}
+.result-section{display:none;background:#fff;border-radius:14px;padding:24px}
+.result-section.show{display:block}
+.result-title{font-size:15px;font-weight:700;color:#0d2137;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+@media(max-width:700px){.fields-grid{grid-template-columns:1fr}}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-label{font-size:12px;font-weight:700;color:#555}
+.field-input{padding:7px 10px;border:1px solid #d5dcee;border-radius:7px;font-size:13px;font-family:inherit;outline:none;background:#fafbfc}
+.field-input:focus{border-color:#1a4a8a;background:#fff}
+.work-section{margin-top:18px}
+.work-add-btn{background:#1a4a8a;color:#fff;border:none;padding:7px 16px;border-radius:7px;font-size:13px;cursor:pointer;margin-bottom:10px}
+.work-entry{border:1px solid #d5dcee;border-radius:10px;padding:14px;margin-bottom:10px;background:#fafbfc}
+.work-entry-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.work-entry-num{font-size:13px;font-weight:700;color:#1a4a8a}
+.work-del-btn{background:#ef4444;color:#fff;border:none;padding:3px 10px;border-radius:5px;font-size:12px;cursor:pointer}
+.work-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.work-row label{font-size:11px;font-weight:600;color:#666;display:block;margin-bottom:2px}
+.work-row input{width:100%;padding:6px 8px;border:1px solid #d5dcee;border-radius:6px;font-size:12.5px;font-family:inherit}
+.work-duties-label{font-size:11px;font-weight:600;color:#666;margin-bottom:3px}
+.work-duties{width:100%;min-height:60px;padding:7px;border:1px solid #d5dcee;border-radius:6px;font-size:12.5px;font-family:inherit;resize:vertical}
+.generate-row{margin-top:20px;display:flex;gap:10px}
+.gen-btn{background:#0d2137;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}
+.gen-btn:hover{background:#1a4a8a}
+.preview-section{display:none;margin-top:24px}
+.preview-section.show{display:block}
+.preview-toolbar{background:linear-gradient(135deg,#0d2137,#1a4a8a);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:14px 14px 0 0}
+.toolbar-title{color:#fff;font-size:14px;font-weight:700}
+.toolbar-btns{display:flex;gap:8px}
+.dl-btn{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.35);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+.dl-btn:hover{background:rgba(255,255,255,.32)}
+#resumePreview{padding:0;font-family:'Microsoft YaHei',SimSun,sans-serif;color:#1a1a1a;font-size:13px;line-height:1.8;background:#fff;border:1px solid #dde5f0;border-top:none;border-radius:0 0 14px 14px;overflow:hidden}
+.r-boz-header{background:linear-gradient(135deg,#1a4a8a,#0d2137);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+.r-boz-left{display:flex;align-items:center;gap:12px}
+.r-boz-logo{width:38px;height:38px;background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1a4a8a;font-size:18px}
+.r-boz-text{color:#fff}
+.r-boz-name{font-size:16px;font-weight:700;letter-spacing:2px}
+.r-boz-sub{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px}
+.r-boz-right{color:rgba(255,255,255,.45);font-size:11px;text-align:right}
+.r-body{padding:20px 28px 24px}
+.r-name{font-size:24px;font-weight:900;color:#0d2137;margin-bottom:10px;letter-spacing:3px}
+.r-info-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12.5px}
+.r-info-table td{padding:4px 8px;border:1px solid #d0d8e8}
+.r-info-table td.lbl{background:#f0f3f8;font-weight:700;color:#555;width:82px;text-align:center;font-size:12px}
+.r-info-table td.val{background:#fff}
+.r-heading{font-size:13.5px;font-weight:800;color:#0d2137;margin:12px 0 5px;border-left:3px solid #1a4a8a;padding-left:7px}
+.r-edu{margin-bottom:3px;font-size:13px}
+.r-edu-date{color:#555}
+.r-edu-school{color:#1a1a1a;margin-left:4px}
+.r-edu-major{font-size:12.5px;color:#444}
+.r-work-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:12.5px}
+.r-work-table th{background:#1a4a8a;color:#fff;padding:6px 10px;text-align:center;border:1px solid #0a1a2e;font-size:12px;font-weight:700}
+.r-work-table td{padding:6px 10px;border:1px solid #d0d8e8;color:#222;text-align:center;font-size:12.5px}
+.r-work-table tr:nth-child(even) td{background:#f4f7ff}
+.r-recommend-box{background:#fffde6;border:1px solid #f0d060;border-radius:5px;padding:8px 12px;margin-bottom:12px}
+.r-recommend-inner{display:flex;align-items:flex-start;gap:7px}
+.r-recommend-badge{background:#1a4a8a;color:#fff;font-size:11px;padding:1px 7px;border-radius:4px;font-weight:700;white-space:nowrap}
+.r-recommend-text{font-size:12.5px;color:#444;line-height:1.7}
+.r-job-detail{margin-bottom:10px}
+.r-job-header{font-size:13px;font-weight:800;color:#111;margin-bottom:3px}
+.r-job-title{font-size:12.5px;font-weight:700;color:#333;margin-bottom:3px}
+.r-duty-label{font-size:12px;font-weight:700;color:#555;margin-bottom:3px}
+.r-job-ul{padding-left:18px;margin:0 0 6px}
+.r-job-ul li{font-size:12.5px;color:#444;margin-bottom:3px;line-height:1.65;list-style-type:disc}
+.r-footer{margin-top:16px;padding-top:7px;border-top:1px solid #dde5f0;display:flex;justify-content:space-between;font-size:11px;color:#bbb}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#0d2137;color:#fff;padding:11px 26px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
+.toast.show{opacity:1}
+.confidence-tag{font-size:10px;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:600;vertical-align:middle}
+.confidence-high{background:#dcfce7;color:#15803d}
+.confidence-mid{background:#fef9c3;color:#854d0e}
+.confidence-low{background:#fee2e2;color:#991b1b}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">博</div>
+  <div>
+    <div class="header-title">博众简历解析工具</div>
+    <div class="header-sub">粘贴/上传简历 → 智能解析 → 核对字段 → 生成博众模板</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- 输入区 -->
+  <div class="input-section">
+    <div class="section-title">📥 简历文本输入</div>
+    <div class="upload-row">
+      <button class="upload-btn" onclick="document.getElementById('fileInput').click()">📎 上传简历（PDF/Word）</button>
+      <span class="upload-filename" id="fileName"></span>
+      <input type="file" id="fileInput" accept=".pdf,.doc,.docx" style="display:none">
+    </div>
+    <div class="section-hint">也可以直接把简历全文复制粘贴到下方，点击解析自动提取字段</div>
+    <textarea id="resumeInput" placeholder="粘贴简历内容到这里
+
+支持格式示例：
+许竞 Eric
+男 | 42岁 | 北京 | 硕士
+邮箱：eric@xxx.com  电话：138xxxx
+━━━━━━━━━━━━━━━━━━━━
+教育背景
+2010.09-2014.06  ▎南京大学  ▎工商管理（本科）
+━━━━━━━━━━━━━━━━━━━━
+工作经历
+2014.07-2017.03  ▎博众集团  ▎HRBP
+工作职责：
+1. 负责招聘计划制定...
+2. 维护员工关系...
+2017.04-2022.08  ▎华为  ▎高级HR
+工作职责：...
+━━━━━━━━━━━━━━━━━━━━
+推荐语
+推荐理由：候选人具备扎实的HR专业基础..."></textarea>
+    <div class="btn-row">
+      <button class="parse-btn" onclick="doParse()">🔍 解析简历</button>
+      <button class="clear-btn" onclick="clearAll()">🗑 清空</button>
+    </div>
+  </div>
+
+  <!-- 解析结果编辑区 -->
+  <div class="result-section" id="resultSection">
+    <div class="result-title">✏️ 核对并修正字段 <span id="confidenceNote" style="font-size:12px;font-weight:400;color:#888;margin-left:8px"></span></div>
+    <div class="fields-grid" id="fieldsGrid">
+      <div class="field-group"><label class="field-label">姓名</label><input class="field-input" id="f_name" placeholder="如：张三"></div>
+      <div class="field-group"><label class="field-label">英文名</label><input class="field-input" id="f_nameEn" placeholder="如：Eric"></div>
+      <div class="field-group"><label class="field-label">年龄</label><input class="field-input" id="f_age" placeholder="如：35岁"></div>
+      <div class="field-group"><label class="field-label">性别</label><input class="field-input" id="f_gender" placeholder="男 / 女"></div>
+      <div class="field-group"><label class="field-label">国籍</label><input class="field-input" id="f_nationality" placeholder="如：中国"></div>
+      <div class="field-group"><label class="field-label">语言</label><input class="field-input" id="f_language" placeholder="如：中文、英文"></div>
+      <div class="field-group"><label class="field-label">居住地</label><input class="field-input" id="f_location" placeholder="如：北京"></div>
+      <div class="field-group"><label class="field-label">婚姻状况</label><input class="field-input" id="f_marital" placeholder="未婚 / 已婚"></div>
+      <div class="field-group"><label class="field-label">到岗时间</label><input class="field-input" id="f_availability" placeholder="如：随时"></div>
+      <div class="field-group"><label class="field-label">期望薪资</label><input class="field-input" id="f_salary" placeholder="如：30-50K"></div>
+      <div class="field-group"><label class="field-label">教育时间</label><input class="field-input" id="f_eduDate" placeholder="如：2010/09-2014/06"></div>
+      <div class="field-group"><label class="field-label">学校</label><input class="field-input" id="f_eduSchool" placeholder="如：南京大学"></div>
+      <div class="field-group"><label class="field-label">专业</label><input class="field-input" id="f_eduMajor" placeholder="如：工商管理"></div>
+      <div class="field-group"><label class="field-label">学历</label><input class="field-input" id="f_eduDegree" placeholder="如：本科、硕士"></div>
+      <div class="field-group" style="grid-column:1/-1"><label class="field-label">推荐语</label><input class="field-input" id="f_recommend" placeholder="推荐语正文（LinkedIn荣誉等）"></div>
+    </div>
+
+    <div class="work-section">
+      <div class="result-title" style="margin-top:8px">💼 工作经历 <span style="font-size:12px;font-weight:400;color:#888">（按时间倒序排列，每段经历请填写完整）</span></div>
+      <button class="work-add-btn" onclick="addWorkEntry()">+ 添加工作经历</button>
+      <div id="workEntries"></div>
+    </div>
+
+    <div class="generate-row">
+      <button class="gen-btn" onclick="generateResume()">📋 生成博众简历</button>
+      <button class="clear-btn" onclick="document.getElementById('resultSection').classList.remove('show')">← 重新解析</button>
+    </div>
+  </div>
+
+  <!-- 简历预览 -->
+  <div class="preview-section" id="previewSection">
+    <div class="preview-toolbar">
+      <div class="toolbar-title">📄 博众标准模板预览</div>
+      <div class="toolbar-btns">
+        <button class="dl-btn" onclick="downloadWord()">⬇ Word</button>
+        <button class="dl-btn" onclick="downloadPDF()">⬇ PDF</button>
+      </div>
+    </div>
+    <div id="resumePreview"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let workEntriesData = [];
+let parseMeta = {}; // 记录每个字段的解析置信度
+
+// ========== 文件读取 ==========
+document.getElementById('fileInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = '已选：' + file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+  try {
+    const text = ext === 'pdf' ? await extractPDF(file) : await extractWord(file);
+    document.getElementById('resumeInput').value = text;
+    showToast('文件读取成功，请检查内容后点击「解析简历」');
+  } catch(err) { showToast('读取失败：' + err.message); }
+});
+
+async function extractPDF(file) {
+  const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+  let texts = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const pg = await pdf.getPage(i);
+    const content = await pg.getTextContent();
+    // 按阅读顺序重建文本
+    const pageItems = content.items;
+    // 简单清洗：去除多余空格，合并同行
+    let pageText = '';
+    let lastY = null;
+    for (const item of pageItems) {
+      const y = Math.round(item.transform[5]);
+      const x = item.transform[4];
+      const str = item.str.replace(/\s+/g, ' ').trim();
+      if (!str) continue;
+      // Y坐标变化超过阈值，认为是新行
+      if (lastY !== null && Math.abs(y - lastY) > 5) {
+        pageText += '\n';
+      } else if (lastY !== null && x < 30) {
+        pageText += ' ';
+      }
+      pageText += str;
+      lastY = y;
+    }
+    texts.push(pageText);
+  }
+  return texts.join('\n\n').trim();
+}
+
+async function extractWord(file) {
+  // 先尝试富文本提取，保留段落结构
+  const result = await mammoth.convertToHtml({arrayBuffer: await file.arrayBuffer()});
+  // 从HTML提取纯文本，保留段落换行
+  const div = document.createElement('div');
+  div.innerHTML = result.value;
+  return div.innerText || result.value.replace(/<[^>]+>/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// ========== 核心解析引擎 v2 ==========
+function parseResume(text) {
+  const d = {
+    name:'', nameEn:'', age:'', gender:'', nationality:'中国',
+    language:'', location:'', marital:'', availability:'', salary:'面议',
+    eduDate:'', eduSchool:'', eduDegree:'', eduMajor:'',
+    recommendBadge:'', recommendText:'',
+    workEntries:[], workDetails:[]
+  };
+  const meta = {}; // 字段置信度
+  const src = { name:'', nameEn:'', age:'', gender:'', nationality:'', language:'', location:'', marital:'', availability:'', salary:'', eduDate:'', eduSchool:'', eduDegree:'', eduMajor:'' };
+
+  // 统一换行符，切分为行
+  const rawLines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  // 清洗每行：去除首尾空白字符，合并同一段落中因PDF分行导致的断裂
+  const lines = [];
+  for (let i = 0; i < rawLines.length; i++) {
+    let l = rawLines[i].trim();
+    if (!l) { lines.push(''); continue; }
+    // PDF列对齐产生的多余空格替换为单空格
+    l = l.replace(/\s{2,}/g, ' ');
+    lines.push(l);
+  }
+  // 压缩连续空行
+  const clean = lines.filter((l,i) => !(l==='' && (i===0 || lines[i-1]==='')));
+  const allText = clean.join('\n');
+
+  // ─── 1. 姓名 ───
+  // 策略：首行、包含中文字符、2-5字
+  const firstReal = clean.find(l => l.trim().length > 0) || '';
+  const nameCandidate = firstReal.replace(/[|｜\t]/g, ' ').replace(/\s{2,}/,' ').trim();
+  const nameM = nameCandidate.match(/^([\u4e00-\u9fa5]{2,5})(?:[\s　]+([a-zA-Z][a-zA-Z0-9\s]{0,30}))?$/);
+  if (nameM) {
+    d.name = nameM[1]; d.nameEn = nameM[2] ? nameM[2].trim() : '';
+    meta.name = 'high'; meta.nameEn = nameM[2] ? 'high' : 'low';
+    src.name = nameCandidate;
+  } else if (/^[\u4e00-\u9fa5]{2,5}$/.test(nameCandidate)) {
+    d.name = nameCandidate; meta.name = 'mid'; src.name = nameCandidate;
+  }
+
+  // ─── 2. 基本信息（标签-值对） ───
+  // 支持格式：标签：值 / 标签  值 / 标签-值 / 标签  ▎值
+  const kvPatterns = [
+    // 常见分隔符
+    {re:/([男女])\s*[：:\|\t　]\s*(男|女)/, g:1, l:'gender'},
+    {re:/年龄[：:\|\t　\-—]*(\d{1,3})岁?/, g:1, l:'age'},
+    {re:/性别[：:\|\t　\-—]*(男|女)/, g:1, l:'gender'},
+    {re:/国籍[：:\|\t　\-—]*([^\s\d\n,，]{1,15})/, g:1, l:'nationality'},
+    {re:/语言[：:\|\t　\-—]*([^\n]{1,60})/, g:1, l:'language'},
+    {re:/居住地[：:\|\t　\-—]*([^\n]{1,30})/, g:1, l:'location'},
+    {re:/婚姻[：:\|\t　\-—]*(未婚|已婚|离异|丧偶)/, g:1, l:'marital'},
+    {re:/到岗|入职|可到岗[：:\|\t　\-—]*([^\n]{1,20})/, g:1, l:'availability'},
+    {re:/期望[薪资|工资|薪酬][：:\|\t　\-—]*([^\n]{1,20})/, g:1, l:'salary'},
+    {re:/电话[：:\|\t　\-—]*([\d\+]{7,20})/, g:1, l:'phone'},
+    {re:/邮箱[：:\|\t　\-—]*([^\s\n]{5,50})/, g:1, l:'email'},
+    // 标签在行末
+    {re:/([\u4e00-\u9fa5]{1,6}[：:])[ \t　]?([^\n]{1,40})/, g:2, l:null},
+  ];
+
+  // 扫描所有行寻找kv对
+  for (const l of clean) {
+    for (const p of kvPatterns) {
+      const m = l.match(p.re);
+      if (m && p.l) {
+        const val = m[p.g] ? m[p.g].trim().replace(/^[\s\-\|▎▎]+|[\s\-\|▎]+$/g,'') : '';
+        if (val && val.length < 50 && !/^[\u4e00-\u9fa5]{2,5}$/.test(val)) {
+          const existing = d[p.l];
+          if (!existing || val.length > existing.length) {
+            if (existing) meta[p.l] = 'mid'; // 有冲突降级
+            else meta[p.l] = 'high';
+            d[p.l] = val;
+            src[p.l] = l;
+          }
+        }
+      }
+    }
+  }
+
+  // 年龄标准化
+  if (d.age && !d.age.includes('岁')) d.age += '岁';
+
+  // ─── 3. 教育背景 ───
+  const eduBlockStart = clean.findIndex(l => /教育|学历|Academic|Education/i.test(l));
+  if (eduBlockStart >= 0) {
+    // 截取教育块（到工作经历前）
+    const eduBlock = clean.slice(eduBlockStart, clean.findIndex((l,i) => i>eduBlockStart && /工作[经历]|Experience|Employment/i.test(l)) || clean.length);
+    const eduText = eduBlock.join('\n');
+
+    // 时间范围
+    const dateM = eduText.match(/(\d{4}[\.\/\-年][^\s\d]{0,4}\d{0,2}[\.\/\-月]?[^\d]*?~\s*\d{4}[\.\/\-][^\s\d]{0,4}\d{0,2}[\.\/\-月]?|\d{4}[\.\/\-年][^\s]{0,5}?\d{0,2}\s*~?\s*\d{4}[\.\/\-年][^\s]{0,5}?\d{0,2})/);
+    if (dateM) { d.eduDate = dateM[1].replace(/年/g,'/').replace(/月/g,'').replace(/[\u4e00-\u9fa5]+/g,'').replace(/\/+/g,'/'); meta.eduDate = 'high'; }
+
+    // 学校（带关键词）
+    const schoolM = eduText.match(/[\u4e00-\u9fa5a-zA-Z]{2,20}(?:大学|学院|School|University|College|Institute|academy)/);
+    if (schoolM) { d.eduSchool = schoolM[0]; meta.eduSchool = 'high'; }
+
+    // 学历
+    const degM = eduText.match(/(?:博士|硕士|研究生|本科|学士|大专|专科|associate|bachelor|master|phd)/i);
+    if (degM) { d.eduDegree = degM[1] || degM[0]; meta.eduDegree = 'high'; }
+
+    // 专业
+    const majorM = eduText.match(/(?:专业|Major)[：:\s　]*([\u4e00-\u9fa5a-zA-Z]{2,20}(?:学|工程|科学|管理|经济|法学)?)/);
+    if (majorM) { d.eduMajor = majorM[1]; meta.eduMajor = 'high'; }
+  }
+
+  // ─── 4. 工作经历 ───
+  // 分两阶段：①汇总表 ②详细块
+  const workBlockStart = clean.findIndex(l => /工作[经历]|Experience|Employment/i.test(l) && !/教育背景|推荐|项目/.test(l));
+  if (workBlockStart >= 0) {
+    const workText = clean.slice(workBlockStart).join('\n');
+
+    // 阶段A：从表格格式提取（常见于猎聘/BOSS导出）
+    // 格式：时间 | 公司 | 职务
+    const tableLines = workText.split('\n').filter(l => /^\d{4}[\.\/\-年]/.test(l.trim()));
+    for (const tl of tableLines) {
+      // 尝试 | 或  ▎ 分隔
+      const parts = tl.split(/[|\▎\t]{1,}/).map(p=>p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        const date = parts[0] || '';
+        // 找公司：包含公司/集团/有限/科技/猎头等关键词
+        const compIdx = parts.findIndex(p => /公司|集团|有限|科技|猎头|企业/i.test(p));
+        const company = compIdx >= 0 ? parts[compIdx] : parts[1];
+        // 职务：除了时间外的非公司项
+        const title = parts.find((p,i) => i !== compIdx && !/^\d{4}/.test(p) && p.length < 30) || '';
+        if (company && !d.workEntries.find(w=>w.company===company)) {
+          d.workEntries.push({dateRange:date, company, title, desc:[]});
+        }
+      }
+    }
+
+    // 阶段B：从自由文本提取工作块（更通用）
+    // 工作块特征：以年份开头，紧接着描述职责
+    const workBlocks = [];
+    let curBlock = null;
+    let inDuty = false;
+    const lines2 = clean.slice(workBlockStart);
+    for (let i = 0; i < lines2.length; i++) {
+      const l = lines2[i];
+      if (/^推荐|^教育|^项目|^证书|^技能/i.test(l) && !/工作职责/.test(l)) break;
+      // 新块入口：年份+公司
+      const blockM = l.match(/^(\d{4}[\.\/\-年][^\d\n]{0,6}\d{0,2})\s+([\u4e00-\u9fa5]{2,15}(?:公司|集团|有限|科技|猎头|企业|咨询|顾问))/);
+      if (blockM) {
+        if (curBlock && curBlock.desc.length > 0) workBlocks.push({...curBlock});
+        curBlock = {dateRange:blockM[1].replace(/年/g,'/').replace(/[\u4e00-\u9fa5]+/g,''), company:blockM[2].trim(), title:'', desc:[]};
+        inDuty = false;
+        // 下一行可能是职务
+        if (i+1 < lines2.length) {
+          const next = lines2[i+1].trim();
+          if (next.length > 0 && next.length < 40 && !/^\d{4}/.test(next) && !/职责/.test(next)) {
+            curBlock.title = next; i++;
+          }
+        }
+      } else if (/职责|职责描述|主要工作|工作内容/.test(l)) {
+        inDuty = true;
+      } else if (inDuty && curBlock) {
+        const t = l.trim();
+        // 过滤掉无效行
+        if (t.length > 5 && t.length < 200 && !/^[A-Za-z0-9]{3,}$/.test(t) && !/^\d{4}/.test(t) && t !== curBlock.title) {
+          // 去除常见前缀符号
+          curBlock.desc.push(t.replace(/^[\-\*\#\▎\s]+/, '').slice(0, 150));
+        }
+      }
+    }
+    if (curBlock && curBlock.desc.length > 0) workBlocks.push({...curBlock});
+
+    // 合并两阶段结果（去重）
+    for (const wb of workBlocks) {
+      if (!d.workDetails.find(w=>w.company===wb.company && w.dateRange===wb.dateRange)) {
+        d.workDetails.push(wb);
+      }
+    }
+  }
+
+  // ─── 5. 推荐语 ───
+  const recIdx = clean.findIndex(l => /^推荐|^推荐理由|^评语/i.test(l));
+  if (recIdx >= 0) {
+    const recLines = [];
+    for (let i = recIdx+1; i < clean.length; i++) {
+      const l = clean[i];
+      if (/^\d{4}[\.\/\-]/.test(l)) break;
+      if (l.trim()) recLines.push(l.replace(/^[▎\|\-\s]+/, '').trim());
+    }
+    d.recommendText = recLines.join('；');
+    if (/LinkedIn|最佳招聘官|年度最佳|荣誉|Top\s*Recruiter/i.test(d.recommendText)) {
+      d.recommendBadge = 'LinkedIn荣誉';
+    }
+  }
+
+  // 保存元数据
+  parseMeta = meta;
+  return d;
+}
+
+// ========== UI 操作 ==========
+function doParse() {
+  const text = document.getElementById('resumeInput').value.trim();
+  if (!text) { showToast('请先输入或上传简历内容'); return; }
+
+  const d = parseResume(text);
+
+  // 填入表单
+  const fids = {
+    f_name: d.name, f_nameEn: d.nameEn, f_age: d.age, f_gender: d.gender,
+    f_nationality: d.nationality, f_language: d.language, f_location: d.location,
+    f_marital: d.marital, f_availability: d.availability, f_salary: d.salary,
+    f_eduDate: d.eduDate, f_eduSchool: d.eduSchool, f_eduMajor: d.eduMajor,
+    f_eduDegree: d.eduDegree, f_recommend: d.recommendText
+  };
+  for (const [id, val] of Object.entries(fids)) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  }
+
+  // 工作经历
+  workEntriesData = d.workDetails.length ? [...d.workDetails] : [...d.workEntries.map(e => ({...e, desc:[]}))];
+  renderWorkEntries();
+
+  // 置信度提示
+  const high = Object.values(parseMeta).filter(v=>v==='high').length;
+  const total = Object.keys(parseMeta).length;
+  const note = document.getElementById('confidenceNote');
+  if (total > 0) {
+    note.textContent = `（自动识别 ${high}/${total} 个字段，请核对修正）`;
+    note.style.color = high === total ? '#15803d' : (high > total/2 ? '#b45309' : '#dc2626');
+  } else {
+    note.textContent = '（未识别到字段，请手动填写）';
+    note.style.color = '#dc2626';
+  }
+
+  document.getElementById('resultSection').classList.add('show');
+  document.getElementById('previewSection').classList.remove('show');
+  document.getElementById('resultSection').scrollIntoView({behavior:'smooth'});
+  showToast('解析完成，请核对各字段是否正确');
+}
+
+function renderWorkEntries() {
+  const container = document.getElementById('workEntries');
+  container.innerHTML = workEntriesData.map((w,i) => `
+    <div class="work-entry" id="we${i}">
+      <div class="work-entry-header">
+        <span class="work-entry-num">第 ${i+1} 段工作经历</span>
+        <button class="work-del-btn" onclick="delWorkEntry(${i})">删除</button>
+      </div>
+      <div class="work-row">
+        <div><label>工作时间</label><input value="${eA(w.dateRange)}" onchange="workEntriesData[${i}].dateRange=this.value"></div>
+        <div><label>公司</label><input value="${eA(w.company)}" onchange="workEntriesData[${i}].company=this.value"></div>
+        <div><label>职务</label><input value="${eA(w.title)}" onchange="workEntriesData[${i}].title=this.value"></div>
+      </div>
+      <label class="work-duties-label">工作职责（每条一行）</label>
+      <textarea class="work-duties" onchange="workEntriesData[${i}].desc=this.value.split('\\n').filter(l=>l.trim())">${(w.desc||[]).join('\n')}</textarea>
+    </div>
+  `).join('');
+  if (!workEntriesData.length) container.innerHTML = '<div style="color:#aaa;font-size:13px;padding:8px">暂无工作经历，请点击上方「添加」手动录入</div>';
+}
+
+function addWorkEntry() {
+  workEntriesData.push({dateRange:'', company:'', title:'', desc:[]});
+  renderWorkEntries();
+}
+function delWorkEntry(i) { workEntriesData.splice(i,1); renderWorkEntries(); }
+
+function eA(s) { if(!s&&s!==0)return''; return String(s).replace(/"/g,'&quot;'); }
+function e(s) { if(!s&&s!==0)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function clearAll() {
+  document.getElementById('resumeInput').value='';
+  document.getElementById('fileName').textContent='';
+  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('previewSection').classList.remove('show');
+  workEntriesData=[];
+}
+
+// ========== 生成简历 ==========
+function generateResume() {
+  const name = document.getElementById('f_name').value.trim() || '（姓名）';
+  const nameEn = document.getElementById('f_nameEn').value.trim();
+  const age = document.getElementById('f_age').value.trim();
+  const gender = document.getElementById('f_gender').value.trim();
+  const nationality = document.getElementById('f_nationality').value.trim() || '中国';
+  const language = document.getElementById('f_language').value.trim();
+  const location = document.getElementById('f_location').value.trim();
+  const marital = document.getElementById('f_marital').value.trim();
+  const availability = document.getElementById('f_availability').value.trim();
+  const salary = document.getElementById('f_salary').value.trim() || '面议';
+  const eduDate = document.getElementById('f_eduDate').value.trim();
+  const eduSchool = document.getElementById('f_eduSchool').value.trim();
+  const eduMajor = document.getElementById('f_eduMajor').value.trim();
+  const eduDegree = document.getElementById('f_eduDegree').value.trim();
+  const recommend = document.getElementById('f_recommend').value.trim();
+  const recommendBadge = /LinkedIn|最佳招聘官|年度最佳/i.test(recommend) ? 'LinkedIn荣誉' : '';
+
+  // 4×2 信息表
+  const pairs = [
+    ['年龄', age], ['性别', gender],
+    ['国籍', nationality], ['语言', language],
+    ['居住地', location], ['婚姻状况', marital],
+    ['到岗时间', availability], ['期望工资', salary]
+  ];
+  let infoHTML='';
+  for (let i=0; i<pairs.length; i+=2) {
+    const [k1,v1]=pairs[i], [k2,v2]=pairs[i+1];
+    infoHTML+=`<tr><td class="lbl">${e(k1)}:</td><td class="val">${e(v1||'—')}</td><td class="lbl">${e(k2)}:</td><td class="val">${e(v2||'—')}</td></tr>`;
+  }
+
+  // 工作汇总表
+  const workRows = workEntriesData.length
+    ? workEntriesData.map(w=>`<tr><td>${e(w.dateRange||'—')}</td><td>${e(w.company||'—')}</td><td>${e(w.title||'—')}</td></tr>`).join('')
+    : `<tr><td colspan="3" style="color:#aaa">暂无工作信息</td></tr>`;
+
+  // 推荐语
+  const recommendHTML = recommend ? `<div class="r-heading">推荐：</div>
+    <div class="r-recommend-box">
+      <div class="r-recommend-inner">
+        ${recommendBadge?`<span class="r-recommend-badge">${e(recommendBadge)}</span>`:''}
+        <span class="r-recommend-text">${e(recommend)}</span>
+      </div>
+    </div>` : '';
+
+  // 工作详细
+  const workDetailsHTML = workEntriesData.length ? workEntriesData.map(w=>`
+    <div class="r-job-detail">
+      <div class="r-job-header">${e(w.dateRange||'')}&nbsp;&nbsp;&nbsp;&nbsp;${e(w.company||'')}</div>
+      ${w.title?`<div class="r-job-title">${e(w.title)}</div>`:''}
+      ${(w.desc||[]).length?`<div class="r-duty-label">工作职责：</div><ul class="r-job-ul">${(w.desc||[]).map(l=>`<li>${e(l)}</li>`).join('')}</ul>`:''}
+    </div>`).join('') : '';
+
+  const today = new Date().toLocaleDateString('zh-CN');
+
+  document.getElementById('resumePreview').innerHTML = `
+    <div class="r-boz-header">
+      <div class="r-boz-left">
+        <div class="r-boz-logo">博</div>
+        <div class="r-boz-text">
+          <div class="r-boz-name">BOZHON 博 众</div>
+          <div class="r-boz-sub">BOZHON HUMAN RESOURCES · ELITE RESUME</div>
+        </div>
+      </div>
+      <div class="r-boz-right"><div>精英人才库</div><div>Elite Resume System</div></div>
+    </div>
+    <div class="r-body">
+      <div class="r-name">${e(name)}${nameEn?' '+e(nameEn):''}</div>
+      <table class="r-info-table">${infoHTML}</table>
+      <div class="r-heading">教育背景：</div>
+      <div class="r-edu"><span class="r-edu-date">${e(eduDate||'—')}</span><span class="r-edu-school">&nbsp;&nbsp;&nbsp;&nbsp;${e(eduSchool||'（学校）')}</span></div>
+      ${eduMajor||eduDegree?`<div class="r-edu-major">${e(eduMajor)}${eduDegree?'（'+e(eduDegree)+'）':''}</div>`:''}
+      <div class="r-heading">工作经历：</div>
+      <table class="r-work-table"><tr><th>工作时间</th><th>公司</th><th>职务</th></tr>${workRows}</table>
+      ${recommendHTML}
+      ${workDetailsHTML}
+      <div class="r-footer"><span>博众人才 &nbsp;|&nbsp; ${today}</span><span>简历内容仅供参考，请以实际为准</span></div>
+    </div>`;
+
+  document.getElementById('previewSection').classList.add('show');
+  document.getElementById('previewSection').scrollIntoView({behavior:'smooth'});
+}
+
+// ========== 导出 ==========
+function downloadPDF() {
+  showToast('正在生成 PDF...');
+  const el = document.getElementById('resumePreview');
+  const name = el.querySelector('.r-name')?.innerText?.trim() || '候选人';
+  const clone = el.cloneNode(true);
+  // 给表格设固定宽度避免PDF乱排
+  const style = document.createElement('style');
+  style.textContent = 'table{width:100%!important;table-layout:fixed!important}td,th{word-break:break-word!important;white-space:normal!important}';
+  clone.prepend(style);
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'width:210mm;padding:0;background:#fff;font-family:"Microsoft YaHei",SimSun,sans-serif;';
+  wrap.appendChild(clone);
+  document.body.appendChild(wrap);
+  html2pdf().set({
+    margin:5,
+    filename: name+'_博众简历.pdf',
+    image:{type:'jpeg',quality:.98},
+    html2canvas:{scale:2,useCORS:true,letterRendering:true},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(wrap).save().then(()=>{
+    document.body.removeChild(wrap);
+    showToast('PDF 下载成功！');
+  }).catch(e=>showToast('PDF 生成失败：'+e.message));
+}
+
+function downloadWord() {
+  showToast('正在生成 Word...');
+  const el = document.getElementById('resumePreview');
+  const name = el.querySelector('.r-name')?.innerText?.trim() || '候选人';
+  const clone = el.cloneNode(true);
+
+  const css = `
+  <style>
+  @page { margin: 0; size: A4; }
+  body { font-family: "Microsoft YaHei", SimSun, "SimSun-ExtB", sans-serif; font-size: 13px; color: #1a1a1a; margin: 0; padding: 0; line-height: 1.8; }
+  * { box-sizing: border-box; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td, th { word-break: break-word; white-space: normal; }
+  .r-boz-header { background: linear-gradient(135deg, #1a4a8a, #0d2137); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .r-boz-left { display: flex; align-items: center; gap: 12px; }
+  .r-boz-logo { width: 38px; height: 38px; background: #fff; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #1a4a8a; font-size: 18px; }
+  .r-boz-text { color: #fff; }
+  .r-boz-name { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+  .r-boz-sub { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 2px; }
+  .r-boz-right { color: rgba(255,255,255,.45); font-size: 11px; text-align: right; }
+  .r-body { padding: 20px 28px 24px; }
+  .r-name { font-size: 24px; font-weight: 900; color: #0d2137; margin-bottom: 10px; letter-spacing: 3px; }
+  td.lbl { background: #f0f3f8; font-weight: 700; color: #555; width: 82px; text-align: center; font-size: 12px; padding: 4px 8px; border: 1px solid #d0d8e8; }
+  td.val { background: #fff; padding: 4px 8px; border: 1px solid #d0d8e8; }
+  .r-heading { font-size: 13.5px; font-weight: 800; color: #0d2137; margin: 12px 0 5px; border-left: 3px solid #1a4a8a; padding-left: 7px; }
+  .r-edu { margin-bottom: 3px; font-size: 13px; }
+  .r-edu-date { color: #555; }
+  .r-edu-school { color: #1a1a1a; margin-left: 4px; }
+  .r-edu-major { font-size: 12.5px; color: #444; }
+  .r-work-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .r-work-table th { background: #1a4a8a; color: #fff; padding: 6px 10px; text-align: center; border: 1px solid #0a1a2e; font-weight: 700; font-size: 12px; }
+  .r-work-table td { padding: 6px 10px; border: 1px solid #d0d8e8; color: #222; text-align: center; font-size: 12.5px; }
+  tr:nth-child(even) td { background: #f4f7ff; }
+  .r-recommend-box { background: #fffde6; border: 1px solid #f0d060; border-radius: 5px; padding: 8px 12px; margin-bottom: 12px; }
+  .r-recommend-inner { display: flex; align-items: flex-start; gap: 7px; }
+  .r-recommend-badge { background: #1a4a8a; color: #fff; font-size: 11px; padding: 1px 7px; border-radius: 4px; font-weight: 700; }
+  .r-recommend-text { font-size: 12.5px; color: #444; line-height: 1.7; }
+  .r-job-detail { margin-bottom: 10px; }
+  .r-job-header { font-size: 13px; font-weight: 800; color: #111; margin-bottom: 3px; }
+  .r-job-title { font-size: 12.5px; font-weight: 700; color: #333; margin-bottom: 3px; }
+  .r-duty-label { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 3px; }
+  ul { padding-left: 18px; margin: 0 0 6px; }
+  li { font-size: 12.5px; color: #444; margin-bottom: 3px; list-style: disc; }
+  .r-footer { margin-top: 16px; padding-top: 7px; border-top: 1px solid #dde5f0; display: flex; justify-content: space-between; font-size: 11px; color: #bbb; }
+  </style>`;
+
+  const html = `<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<title>${e(name)} 博众简历</title>${css}
+</head>
+<body>${clone.innerHTML}</body>
+</html>`;
+
+  const blob = new Blob(['\ufeff'+html], {type:'application/msword;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name+'_博众简历.doc';
+  a.click();
+  showToast('Word 下载成功！');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
